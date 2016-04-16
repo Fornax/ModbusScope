@@ -22,26 +22,16 @@ CommunicationManager::CommunicationManager(SettingsModel * pSettingsModel, GuiMo
     /* Setup modbus master */
     _master = new ModbusMaster(_pSettingsModel, _pGuiModel);
 
-    connect(this, SIGNAL(requestStop()), _master, SLOT(stopThread()));
-
-    connect(_master, SIGNAL(threadStopped()), this, SLOT(masterStopped()));
-    connect(_master, SIGNAL(threadStopped()), _master, SLOT(deleteLater()));
-
-    _master->startThread();
-
     connect(this, SIGNAL(registerRequest(QList<quint16>)), _master, SLOT(readRegisterList(QList<quint16>)));
     connect(_master, SIGNAL(modbusPollDone(QMap<quint16, ModbusResult>)), this, SLOT(handlePollDone(QMap<quint16, ModbusResult>)));
+
+    // Don't just propagate
+    //TODO: only error box and stop communication on first request
+    connect(_master, SIGNAL(connectionFailed(QString)), this, SIGNAL(connectionFailed(QString))); // Propagate error
 }
 
 CommunicationManager::~CommunicationManager()
 {
-    emit requestStop();
-
-    if (_master)
-    {
-        _master->wait();
-    }
-
     delete _pPollTimer;
 }
 
@@ -126,12 +116,6 @@ void CommunicationManager::handlePollDone(QMap<quint16, ModbusResult> resultMap)
         // propagate processed data
         emit handleReceivedData(successList, processedValues);
     }
-}
-
-
-void CommunicationManager::masterStopped()
-{
-    _master = NULL;
 }
 
 void CommunicationManager::stopCommunication()

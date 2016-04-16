@@ -3,13 +3,31 @@
 
 #include <QObject>
 #include <QMap>
-#include "modbusresult.h"
+#include <QModbusTcpClient>
 
-#include <modbus.h>
+#include "modbusresult.h"
 
 /* Forward declaration */
 class SettingsModel;
 class GuiModel;
+
+class ModbusReadItem
+{
+public:
+    ModbusReadItem(quint16 address, quint8 count)
+    {
+        _address = address;
+        _count = count;
+    }
+
+    quint16 address(void) { return _address; }
+    quint16 count(void) { return _count; }
+
+private:
+   quint16 _address;
+   quint8 _count;
+
+};
 
 class ModbusMaster : public QObject
 {
@@ -18,30 +36,33 @@ public:
     explicit ModbusMaster(SettingsModel * pSettingsModel, GuiModel *pGuiModel, QObject *parent = 0);
     virtual ~ModbusMaster();
 
-    void startThread();
-    void wait();
-
 signals:
     void modbusPollDone(QMap<quint16, ModbusResult> modbusResults);
-    void threadStopped();
+    void connectionFailed(QString errorString);
+    void disconnectClient();
 
 public slots:
     void readRegisterList(QList<quint16> registerList);
-    void stopThread();
 
 private slots:
-    void stopped();
-
+    void handleConnectionStateChanged(QModbusDevice::State state);
+    void handleReadDone();
+    void handleCommunicationError(QModbusDevice::Error err);
 
 private:
 
-    modbus_t * openPort(QString ip, quint16 port);
-    void closePort(modbus_t *);
-    qint32 readRegisters(modbus_t * pCtx, quint16 startReg, quint32 num, QList<quint16> * pResultList);
+    void startConnection();
+    void createReadList(QList<quint16> registerList);
+    bool startReadRegisterCluster();
+
+    QModbusTcpClient _client;
+    QModbusReply * _pReply;
+
+    QMap<quint16, ModbusResult> _resultMap;
+    QList<ModbusReadItem> _readList;
 
     SettingsModel * _pSettingsModel;
     GuiModel * _pGuiModel;
-    QThread * _pThread;
 
 };
 

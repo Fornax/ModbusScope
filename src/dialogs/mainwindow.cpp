@@ -187,6 +187,7 @@ MainWindow::MainWindow(QStringList cmdArguments, QWidget *parent) :
 
     connect(_pConnMan, SIGNAL(handleReceivedData(QList<bool>, QList<double>)), _pGraphView, SLOT(plotResults(QList<bool>, QList<double>)));
     connect(_pConnMan, SIGNAL(handleReceivedData(QList<bool>, QList<double>)), _pLegend, SLOT(addDataToLegend(QList<bool>, QList<double>)));
+    connect(_pConnMan, SIGNAL(connectionFailed(QString)), this, SLOT(handleConnectionFailure(QString)));
 
     _pMarkerInfo = _pUi->markerInfo;
     _pMarkerInfo->setModel(_pGuiModel, _pGraphDataModel);
@@ -837,6 +838,17 @@ void MainWindow::updateRuntime()
     {
         _runtimeTimer.singleShot(250, this, SLOT(updateRuntime()));
     }
+}
+
+void MainWindow::handleConnectionFailure(QString errString)
+{
+    stopScope();
+
+    QMessageBox msgBox;
+    msgBox.setWindowTitle(tr("ModbusScope connection error"));
+    msgBox.setIcon(QMessageBox::Warning);
+    msgBox.setText(tr("Connection failed: %1").arg(errString));
+    msgBox.exec();
 }
 
 void MainWindow::updateConnectionSetting(ProjectFileParser::ProjectSettings * pProjectSettings)

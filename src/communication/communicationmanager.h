@@ -32,12 +32,11 @@ public slots:
 
 signals:
     void registerRequest(QList<quint16> registerList);
-    void requestStop();
     void handleReceivedData(QList<bool> successList, QList<double> values);
+    void connectionFailed(QString errorString);
 
 private slots:
     void readData();
-    void masterStopped();
 
 private:
 
